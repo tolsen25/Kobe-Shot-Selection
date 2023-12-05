@@ -39,13 +39,13 @@ my_recipe <- recipe(shot_made_flag ~ ., data=train) %>%
   step_zv(all_predictors()) %>% 
   step_rm(shot_id) %>% 
   step_lencode_mixed(all_nominal_predictors(), outcome = vars(shot_made_flag)) %>% 
-  step_corr(all_numeric_predictors(), threshold = .75) %>% 
-  step_normalize(all_numeric_predictors()) %>%   
-  step_smote(all_outcomes(), neighbors = 5)
+  step_corr(all_numeric_predictors(), threshold = .9) %>% 
+  step_normalize(all_numeric_predictors()) #%>%   
+  #step_smote(all_outcomes(), neighbors = 5)
 
 
-prepped = prep(my_recipe)
-x = bake(prepped, new_data = train)
+# prepped = prep(my_recipe)
+# x = bake(prepped, new_data = train)
 
 
 boost_wf <- workflow() %>%
@@ -74,7 +74,7 @@ sub = test %>% mutate(
 ) %>% select(shot_id, shot_made_flag)
 
 
-vroom_write(sub, "kobe_boost.csv", delim = ",")
+vroom_write(sub, "kobe_boost6.csv", delim = ",")
 
 
 

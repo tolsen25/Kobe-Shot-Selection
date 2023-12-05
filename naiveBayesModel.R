@@ -15,7 +15,8 @@ data2 = data %>% mutate(
   shot_made_flag = as.factor(shot_made_flag),
   season_team = str_c(season, opponent, sep = "_")
   
-) %>% select(c(shot_made_flag, shot_distance, shot_id, period, season_team, seconds_remaining))
+) %>% select(c(shot_made_flag, shot_distance, shot_id, period, 
+               season_team, seconds_remaining,playoffs))
 
 
 
@@ -29,7 +30,7 @@ bayesRegModel = naive_Bayes(Laplace = tune(), smoothness= tune()) %>%
 my_recipe <- recipe(shot_made_flag ~ ., data=train) %>%
    step_mutate_at(all_numeric_predictors(), fn = factor)  %>% # turn all numeric features into factors5
    # step_other(all_nominal_predictors(), threshold = .001) %>% 
-   step_lencode_mixed(all_nominal_predictors(), outcome = vars(shot_made_flag))
+   step_lencode_mixed(all_nominal_predictors(), outcome = vars(shot_made_flag)) 
   
 
 
@@ -61,7 +62,7 @@ sub = test %>% mutate(
 ) %>% select(shot_id, shot_made_flag)
 
 
-vroom_write(sub, "kobebayes.csv", delim = ",")
+#vroom_write(sub, "kobebayes2.csv", delim = ",")
 
 
 

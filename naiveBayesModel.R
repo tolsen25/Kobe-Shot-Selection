@@ -5,8 +5,6 @@ library(embed)
 library(discrim)
 library(yardstick)
 
-
-
 toView = data %>% head(100)
 
 data = vroom("data.csv")
@@ -16,7 +14,7 @@ data2 = data %>% mutate(
   season_team = str_c(season, opponent, sep = "_")
   
 ) %>% select(c(shot_made_flag, shot_distance, shot_id, period, 
-               season_team, seconds_remaining,playoffs))
+               season_team, seconds_remaining,playoffs,action_type))
 
 
 
@@ -62,7 +60,7 @@ sub = test %>% mutate(
 ) %>% select(shot_id, shot_made_flag)
 
 
-#vroom_write(sub, "kobebayes2.csv", delim = ",")
+vroom_write(sub, "kobebayes4.csv", delim = ",")
 
 
 

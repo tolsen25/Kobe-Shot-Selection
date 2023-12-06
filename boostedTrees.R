@@ -13,25 +13,39 @@ data = vroom("data.csv")
 data2 = data %>% mutate(
   
   shot_made_flag = as.factor(shot_made_flag),
+  finalMinute = ifelse(minutes_remaining == 0, 1,0),
+  trueBeater = ifelse(minutes_remaining == 0, ifelse(seconds_remaining <= 3,1,0),0),
+  endOfQuarterHeave = if_else(period < 4 & shot_distance > 20 & seconds_remaining < 5,1,0)
+ # period = as.factor(period),
+  #season_team = str_c(season, opponent, sep = "_")
+
 
     
 ) %>% select(c(shot_made_flag, shot_distance, shot_id, period, 
-                seconds_remaining, action_type, opponent, minutes_remaining,loc_x,loc_y,
-               opponent,season, shot_zone_area, playoffs))
+                seconds_remaining, action_type, opponent, minutes_remaining,
+               opponent,season, shot_zone_area, playoffstr,trueBeater,finalMinute,endOfQuarterHeave))
 
 # my_recipe <- recipe(shot_made_flag ~ ., data=train) %>%
 #   step_mutate_at(all_numeric_predictors(), fn = factor)  %>% # turn all numeric features into factors5
 #   # step_other(all_nominal_predictors(), threshold = .001) %>% 
 #   step_lencode_mixed(all_nominal_predictors(), outcome = vars(shot_made_flag)) 
-# boosted_model <- boost_tree(tree_depth=1, #Determined by random store-item combos
-#                             trees=1000,
-#                             learn_rate=.1) %>%
-#   set_engine("lightgbm") %>%
-#   set_mode("classification")
+boosted_model <- boost_tree(tree_depth=1, #Determined by random store-item combos
+                            trees=2000,
+                            learn_rate=.1
+                            # min_n = 40,
+                            # loss_reduction = 0000000001
+
+
+                            ) %>%
+  set_engine("lightgbm") %>%
+  set_mode("classification")
 
 boosted_model <- boost_tree(tree_depth=tune(), #Determined by random store-item combos
                             trees=tune(),
-                            learn_rate=tune()) %>%
+                            learn_rate=tune(),
+                            min_n = tune(),
+                            loss_reduction = tune()
+                            ) %>%
   set_engine("lightgbm") %>%
   set_mode("classification")
 
@@ -44,9 +58,9 @@ my_recipe <- recipe(shot_made_flag ~ ., data=train) %>%
   #step_date(game_date) %>% 
   step_zv(all_predictors()) %>% 
   step_rm(shot_id) %>% 
-  step_lencode_mixed(all_nominal_predictors(), outcome = vars(shot_made_flag)) %>% 
   step_corr(all_numeric_predictors(), threshold = .90) %>% 
-  step_normalize(all_numeric_predictors()) #%>%   
+  step_normalize(all_numeric_predictors()) %>% 
+  step_lencode_mixed(all_nominal_predictors(), outcome = vars(shot_made_flag))  
   #step_smote(all_outcomes(), neighbors = 5)
 
 
@@ -59,29 +73,29 @@ boost_wf <- workflow() %>%
   add_model(boosted_model)
 
 
-tuning_grid = grid_regular(tree_depth(),trees(), learn_rate())# idk what this does
+tuning_grid = grid_regular(tree_depth(),trees(), learn_rate(), min_n(), loss_reduction())# idk what this does
 
-folds = vfold_cv(train, v = 10, repeats = 1)
+folds = vfold_cv(train, v = 5, repeats = 1)
 
 CV_results = boost_wf %>% tune_grid(resamples = folds, grid = tuning_grid,
                                               metrics = metric_set(mn_log_loss))
 
 bestTune = CV_results %>% select_best("mn_log_loss")
-# # 
+
 final_wf = boost_wf %>% finalize_workflow(bestTune) %>% fit(train)
 
 
 kobe_boost_preds = predict(final_wf, new_data = test, type = "prob")
 
-sub = test %>% mutate(
+sub2 = test %>% mutate(
   shot_made_flag = kobe_boost_preds$.pred_1,
   shot_id = shot_id
   
 ) %>% select(shot_id, shot_made_flag)
 
-print(summary(sub$shot_made_flag))
+print(summary(sub2$shot_made_flag))
 
-vroom_write(sub, "kobe_boost15.csv", delim = ",")
+vroom_write(sub2, "kobe_boost19.csv", delim = ",")
 
 
 

@@ -22,8 +22,8 @@ data2 = data %>% mutate(
 
     
 ) %>% select(c(shot_made_flag, shot_distance, shot_id, period, 
-          action_type, opponent, 
-               opponent,season,  playoffs,trueBeater,finalMinute,endOfQuarterHeave))
+                seconds_remaining, action_type, opponent, minutes_remaining,loc_x,loc_y,
+                opponent,season, shot_zone_area, playoffs))
 
 # my_recipe <- recipe(shot_made_flag ~ ., data=train) %>%
 #   step_mutate_at(all_numeric_predictors(), fn = factor)  %>% # turn all numeric features into factors5
@@ -58,7 +58,7 @@ my_recipe <- recipe(shot_made_flag ~ ., data=train) %>%
   #step_date(game_date) %>% 
   step_zv(all_predictors()) %>% 
   step_rm(shot_id) %>% 
-  step_corr(all_numeric_predictors(), threshold = .75) %>% 
+  #step_corr(all_numeric_predictors(), threshold = .7) %>% 
   step_normalize(all_numeric_predictors()) %>% 
   step_lencode_mixed(all_nominal_predictors(), outcome = vars(shot_made_flag))  
   #step_smote(all_outcomes(), neighbors = 5)
@@ -93,7 +93,8 @@ sub2 = test %>% mutate(
   
 ) %>% select(shot_id, shot_made_flag)
 
-print(summary(sub2$shot_made_flag))
+sumStats4 = summary(sub2$shot_made_flag)
+print(sumStats)
 
 vroom_write(sub2, "kobe_boost19.csv", delim = ",")
 

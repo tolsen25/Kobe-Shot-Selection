@@ -22,8 +22,8 @@ data2 = data %>% mutate(
 
     
 ) %>% select(c(shot_made_flag, shot_distance, shot_id, period, 
-                seconds_remaining, action_type, opponent, minutes_remaining,
-               opponent,season, shot_zone_area, playoffstr,trueBeater,finalMinute,endOfQuarterHeave))
+          action_type, opponent, 
+               opponent,season,  playoffs,trueBeater,finalMinute,endOfQuarterHeave))
 
 # my_recipe <- recipe(shot_made_flag ~ ., data=train) %>%
 #   step_mutate_at(all_numeric_predictors(), fn = factor)  %>% # turn all numeric features into factors5
@@ -40,14 +40,14 @@ boosted_model <- boost_tree(tree_depth=1, #Determined by random store-item combo
   set_engine("lightgbm") %>%
   set_mode("classification")
 
-boosted_model <- boost_tree(tree_depth=tune(), #Determined by random store-item combos
-                            trees=tune(),
-                            learn_rate=tune(),
-                            min_n = tune(),
-                            loss_reduction = tune()
-                            ) %>%
-  set_engine("lightgbm") %>%
-  set_mode("classification")
+# boosted_model <- boost_tree(tree_depth=tune(), #Determined by random store-item combos
+#                             trees=tune(),
+#                             learn_rate=tune(),
+#                             min_n = tune(),
+#                             loss_reduction = tune()
+#                             ) %>%
+#   set_engine("lightgbm") %>%
+#   set_mode("classification")
 
 train = data2 %>% filter(!is.na(shot_made_flag))
 test = data2 %>% filter(is.na(shot_made_flag))
@@ -58,7 +58,7 @@ my_recipe <- recipe(shot_made_flag ~ ., data=train) %>%
   #step_date(game_date) %>% 
   step_zv(all_predictors()) %>% 
   step_rm(shot_id) %>% 
-  step_corr(all_numeric_predictors(), threshold = .90) %>% 
+  step_corr(all_numeric_predictors(), threshold = .75) %>% 
   step_normalize(all_numeric_predictors()) %>% 
   step_lencode_mixed(all_nominal_predictors(), outcome = vars(shot_made_flag))  
   #step_smote(all_outcomes(), neighbors = 5)
@@ -72,13 +72,13 @@ boost_wf <- workflow() %>%
   add_recipe(my_recipe) %>%
   add_model(boosted_model)
 
-
-tuning_grid = grid_regular(tree_depth(),trees(), learn_rate(), min_n(), loss_reduction())# idk what this does
-
-folds = vfold_cv(train, v = 5, repeats = 1)
-
-CV_results = boost_wf %>% tune_grid(resamples = folds, grid = tuning_grid,
-                                              metrics = metric_set(mn_log_loss))
+# 
+# tuning_grid = grid_regular(tree_depth(),trees(), learn_rate(), min_n(), loss_reduction())# idk what this does
+# 
+# folds = vfold_cv(train, v = 5, repeats = 1)
+# 
+# CV_results = boost_wf %>% tune_grid(resamples = folds, grid = tuning_grid,
+#                                               metrics = metric_set(mn_log_loss))
 
 bestTune = CV_results %>% select_best("mn_log_loss")
 

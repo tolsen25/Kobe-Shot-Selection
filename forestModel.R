@@ -20,28 +20,32 @@ data2 = data %>% mutate(
 train = data2 %>% filter(!is.na(shot_made_flag))
 test = data2 %>% filter(is.na(shot_made_flag))
 
+# best Tune  == mtry =2 and min_n =40
 treeModel = rand_forest(mtry = tune(), min_n =  tune(), trees = 500) %>%
   set_engine("ranger") %>%
   set_mode("classification")
 
 my_recipe <- recipe(shot_made_flag ~ ., data=train) %>%
+  step_dummy(all_nominal_predictors()) %>% 
   step_zv(all_predictors()) %>% 
   step_rm(shot_id) %>% 
   step_corr(all_numeric_predictors(), threshold = .7) %>% 
-  step_normalize(all_numeric_predictors()) %>% 
   step_lencode_mixed(all_nominal_predictors(), outcome = vars(shot_made_flag)) 
+
+prepped = prep(my_recipe)
+x = bake(prepped, new_data = train)
 
 forestReg_workflow = workflow()  %>%
   add_recipe(my_recipe) %>% add_model(treeModel)
 
-tuning_grid = grid_regular(mtry(range = c(1,5)), min_n(), levels = 5)# idk what this does
-
-folds = vfold_cv(train, v = 5, repeats = 1)
-
-CV_results = forestReg_workflow %>% tune_grid(resamples = folds, grid = tuning_grid,
-                                              metrics = metric_set(mn_log_loss))
-
-bestTune = CV_results %>% select_best("mn_log_loss")
+# tuning_grid = grid_regular(mtry(range = c(1,5)), min_n(), levels = 5)# idk what this does
+# 
+# folds = vfold_cv(train, v = 5, repeats = 1)
+# 
+# CV_results = forestReg_workflow %>% tune_grid(resamples = folds, grid = tuning_grid,
+#                                               metrics = metric_set(mn_log_loss))
+# 
+# bestTune = CV_results %>% select_best("mn_log_loss")
 
 final_wf = forestReg_workflow %>% finalize_workflow(bestTune) %>% fit(train)
 
@@ -54,8 +58,10 @@ sub = test %>% mutate(
   
 ) %>% select(shot_id, shot_made_flag)
 
+kobeStats = summary(sub$shot_made_flag)
+kobeStats
 
-vroom_write(sub, "kobeRandomForest.csv", delim = ",")
+vroom_write(sub, "kobeRandomForest5.csv", delim = ",")
 
 
 

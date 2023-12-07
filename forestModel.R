@@ -22,10 +22,10 @@ data2 = data %>% mutate(
   period = as.factor(period),
   shot_distance = sqrt((loc_x/10)^2 + (loc_y/10)^2), 
   season <- substr(str_split_fixed(season, '-',2)[,2],2,2)
-
+  
   
 ) %>% select(c(shot_made_flag, shot_distance, shot_id, period, action_type, 
-                             opponent, time_remaining,season, playoffs, matchup,angle))
+               opponent, time_remaining,season, playoffs, matchup,angle))
 
 
 train = data2 %>% filter(!is.na(shot_made_flag))
@@ -55,7 +55,7 @@ my_recipe <- recipe(shot_made_flag ~ ., data=train) %>%
   step_novel(all_nominal_predictors()) %>% 
   step_unknown(all_nominal_predictors()) %>% 
   step_lencode_mixed(all_nominal_predictors(), outcome = vars(shot_made_flag))
-  #step_dummy(all_nominal_predictors())
+#step_dummy(all_nominal_predictors())
 
 
 
@@ -92,36 +92,35 @@ vroom_write(sub, "kobeRandomForest6.csv", delim = ",")
 
 # testing -----------------------------------------------------------------
 
-library(randomForest)
-library(ranger)
-
-# Assuming 'train_data' is your training dataset
-rf_model <- ranger(shot_made_flag ~ ., data = train, num.trees = 100, importance = "impurity")
-
-# Extract feature importance
-feature_importance <- ranger::importance(rf_model)
-
-# Print or visualize the feature importance
-print(feature_importance)
-
-# Optionally, visualize the feature importance
-varImpPlot(rf_model)
-
-
-
-data2 = data %>% mutate(
-  
-  shot_made_flag = as.factor(shot_made_flag),
-  
-  
-) %>% select(c(shot_made_flag, shot_distance, shot_id, period, 
-               seconds_remaining, action_type, opponent, minutes_remaining,loc_x,loc_y,
-               opponent,season, shot_zone_area, playoffs,game_date))
-
-
-train = data2 %>% filter(!is.na(shot_made_flag))
-
-
+# library(randomForest)
+# library(ranger)
+# 
+# # Assuming 'train_data' is your training dataset
+# rf_model <- ranger(shot_made_flag ~ ., data = train, num.trees = 100, importance = "impurity")
+# 
+# # Extract feature importance
+# feature_importance <- ranger::importance(rf_model)
+# 
+# # Print or visualize the feature importance
+# print(feature_importance)
+# 
+# # Optionally, visualize the feature importance
+# varImpPlot(rf_model)
+# 
+# 
+# 
+# data2 = data %>% mutate(
+#   
+#   shot_made_flag = as.factor(shot_made_flag),
+#   
+#   
+# ) %>% select(c(shot_made_flag, shot_distance, shot_id, period, 
+#                seconds_remaining, action_type, opponent, minutes_remaining,loc_x,loc_y,
+#                opponent,season, shot_zone_area, playoffs,game_date))
+# 
+# 
+# train = data2 %>% filter(!is.na(shot_made_flag))
+# 
 
 
 

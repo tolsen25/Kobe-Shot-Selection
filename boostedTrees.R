@@ -10,59 +10,63 @@ library(themis)
 
 
 data = vroom("data.csv")
+
+loc_x_zero <- data$loc_x == 0
+data['angle'] <- rep(0,nrow(data))
+data$angle[!loc_x_zero] <- atan(data$loc_y[!loc_x_zero] / data$loc_x[!loc_x_zero])
+data$angle[loc_x_zero] <- pi / 2
+
 data2 = data %>% mutate(
   
+  
   shot_made_flag = as.factor(shot_made_flag),
-  finalMinute = ifelse(minutes_remaining == 0, 1,0),
-  trueBeater = ifelse(minutes_remaining == 0, ifelse(seconds_remaining <= 3,1,0),0),
-  endOfQuarterHeave = if_else(period < 4 & shot_distance > 20 & seconds_remaining < 5,1,0)
- # period = as.factor(period),
-  #season_team = str_c(season, opponent, sep = "_")
+  matchup = ifelse(str_detect(matchup, 'vs.'), 'Home', 'Away'),
+  time_remaining = minutes_remaining*60 + seconds_remaining,
+  period = as.factor(period),
+  shot_distance = sqrt((loc_x/10)^2 + (loc_y/10)^2), 
+  season <- substr(str_split_fixed(season, '-',2)[,2],2,2)
+  
+  
+) %>% select(c(shot_made_flag, shot_distance, shot_id, period, action_type, 
+               opponent, time_remaining,season, playoffs, matchup,angle))
 
 
-    
-) %>% select(c(shot_made_flag, shot_distance, shot_id, period, 
-                seconds_remaining, action_type, opponent, minutes_remaining,loc_x,loc_y,
-                opponent,season, shot_zone_area, playoffs))
+train = data2 %>% filter(!is.na(shot_made_flag))
+test = data2 %>% filter(is.na(shot_made_flag))
+
 
 # my_recipe <- recipe(shot_made_flag ~ ., data=train) %>%
-#   step_mutate_at(all_numeric_predictors(), fn = factor)  %>% # turn all numeric features into factors5
-#   # step_other(all_nominal_predictors(), threshold = .001) %>% 
-#   step_lencode_mixed(all_nominal_predictors(), outcome = vars(shot_made_flag)) 
+#   #step_mutate_at(all_numeric_predictors(), fn = factor)  %>% # turn all numeric features into factors5
+#   #step_other(all_nominal_predictors(), threshold = .01) %>%
+#   #step_date(game_date) %>%
+#   step_zv(all_predictors()) %>%
+#   step_rm(shot_id) %>%
+#   #step_corr(all_numeric_predictors(), threshold = .7) %>%
+#   step_normalize(all_numeric_predictors()) %>%
+#   step_lencode_mixed(all_nominal_predictors(), outcome = vars(shot_made_flag))
+# #step_smote(all_outcomes(), neighbors = 5)
+# 
+
+my_recipe <- recipe(shot_made_flag ~ ., data=train) %>%
+  #step_zv(all_predictors()) %>%
+  step_rm(shot_id) %>%
+  step_normalize(all_numeric_predictors()) %>%
+  step_novel(all_nominal_predictors()) %>% 
+  step_unknown(all_nominal_predictors()) %>% 
+  step_lencode_mixed(all_nominal_predictors(), outcome = vars(shot_made_flag))
+#step_dummy(all_nominal_predictors())
+#step_dummy(all_nominal_predictors())
+
 boosted_model <- boost_tree(tree_depth=1, #Determined by random store-item combos
                             trees=2000,
                             learn_rate=.1
                             # min_n = 40,
                             # loss_reduction = 0000000001
-
-
-                            ) %>%
+                            
+                            
+) %>%
   set_engine("lightgbm") %>%
   set_mode("classification")
-
-# boosted_model <- boost_tree(tree_depth=tune(), #Determined by random store-item combos
-#                             trees=tune(),
-#                             learn_rate=tune(),
-#                             min_n = tune(),
-#                             loss_reduction = tune()
-#                             ) %>%
-#   set_engine("lightgbm") %>%
-#   set_mode("classification")
-
-train = data2 %>% filter(!is.na(shot_made_flag))
-test = data2 %>% filter(is.na(shot_made_flag))
-
-my_recipe <- recipe(shot_made_flag ~ ., data=train) %>%
-  #step_mutate_at(all_numeric_predictors(), fn = factor)  %>% # turn all numeric features into factors5
-  #step_other(all_nominal_predictors(), threshold = .01) %>% 
-  #step_date(game_date) %>% 
-  step_zv(all_predictors()) %>% 
-  step_rm(shot_id) %>% 
-  #step_corr(all_numeric_predictors(), threshold = .7) %>% 
-  step_normalize(all_numeric_predictors()) %>% 
-  step_lencode_mixed(all_nominal_predictors(), outcome = vars(shot_made_flag))  
-  #step_smote(all_outcomes(), neighbors = 5)
-
 
 prepped = prep(my_recipe)
 x = bake(prepped, new_data = train)
@@ -80,10 +84,10 @@ boost_wf <- workflow() %>%
 # CV_results = boost_wf %>% tune_grid(resamples = folds, grid = tuning_grid,
 #                                               metrics = metric_set(mn_log_loss))
 
-bestTune = CV_results %>% select_best("mn_log_loss")
+#bestTune = CV_results %>% select_best("mn_log_loss")
 
-final_wf = boost_wf %>% finalize_workflow(bestTune) %>% fit(train)
-
+#final_wf = boost_wf %>% finalize_workflow(bestTune) %>% fit(train)
+final_wf = boost_wf %>% fit(train)
 
 kobe_boost_preds = predict(final_wf, new_data = test, type = "prob")
 
@@ -94,7 +98,7 @@ sub2 = test %>% mutate(
 ) %>% select(shot_id, shot_made_flag)
 
 sumStats4 = summary(sub2$shot_made_flag)
-print(sumStats)
+print(sumStats4)
 
 vroom_write(sub2, "kobe_boost19.csv", delim = ",")
 

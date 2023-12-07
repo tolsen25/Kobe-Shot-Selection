@@ -25,8 +25,7 @@ data2 = data %>% mutate(
 
   
 ) %>% select(c(shot_made_flag, shot_distance, shot_id, period, action_type, 
-                             opponent, time_remaining,
-                              opponent,season, playoffs,game_date, matchup,angle))
+                             opponent, time_remaining,season, playoffs, matchup,angle))
 
 
 train = data2 %>% filter(!is.na(shot_made_flag))
@@ -45,13 +44,14 @@ treeModel = rand_forest(mtry = 2, min_n =  40, trees = 500) %>%
 #   step_rm(shot_id) %>%
 #   #step_corr(all_numeric_predictors(), threshold = .7) %>%
 #   step_normalize(all_numeric_predictors()) %>%
-   step_lencode_mixed(all_nominal_predictors(), outcome = vars(shot_made_flag))
+#   step_lencode_mixed(all_nominal_predictors(), outcome = vars(shot_made_flag))
 # #step_smote(all_outcomes(), neighbors = 5)
-
+# 
 
 my_recipe <- recipe(shot_made_flag ~ ., data=train) %>%
   #step_zv(all_predictors()) %>%
   step_rm(shot_id) %>%
+  step_normalize(all_numeric_predictors()) %>%
   step_novel(all_nominal_predictors()) %>% 
   step_unknown(all_nominal_predictors()) %>% 
   step_lencode_mixed(all_nominal_predictors(), outcome = vars(shot_made_flag))
@@ -88,7 +88,7 @@ sub = test %>% mutate(
 kobeStats = summary(sub$shot_made_flag)
 kobeStats
 
-vroom_write(sub, "kobeRandomForest5.csv", delim = ",")
+vroom_write(sub, "kobeRandomForest6.csv", delim = ",")
 
 # testing -----------------------------------------------------------------
 

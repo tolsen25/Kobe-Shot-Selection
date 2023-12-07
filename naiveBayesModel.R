@@ -4,6 +4,7 @@ library(vroom)
 library(embed)
 library(discrim)
 library(yardstick)
+library(themis)
 
 toView = data %>% head(100)
 
@@ -11,10 +12,11 @@ data = vroom("data.csv")
 data2 = data %>% mutate(
   
   shot_made_flag = as.factor(shot_made_flag),
-  season_team = str_c(season, opponent, sep = "_")
+  season_team = str_c(season, opponent, sep = "_"),
+  buzzerBeater = ifelse(minutes_remaining == 0, ifelse(seconds_remaining < 5,1,0),0)
   
 ) %>% select(c(shot_made_flag, shot_distance, shot_id, period, 
-               season_team, seconds_remaining,playoffs,action_type))
+               season_team, seconds_remaining,playoffs,action_type,lat,lon))
 
 
 
